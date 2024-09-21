@@ -10,7 +10,7 @@ library(tidyverse)
 library(fs)  # For file system handling
 
 ############################# Manage Directories #############################
-# Create directory to store raw data CSV files (clear if it exists first)
+# Create directories to store raw data CSV files (clear if it exists first)
 raw_data_dir <- "data/raw_data"
 
 # Check if the directory exists, if it does, delete it
@@ -52,7 +52,7 @@ for(i in 1:nrow(datastore_resources)) {
     if (is_tibble(resource_data[[name]]) && nrow(resource_data[[name]]) > 1) {
 
       # Save the individual CSV file to the raw_data directory
-      file_path <- file.path(raw_data_dir, "raw_bikeshare_data/", name)
+      file_path <- file.path(bikeshare_file_path, name)
       write_csv(resource_data[[name]], file_path)
     }
   }
@@ -73,5 +73,5 @@ datastore_resources <- filter(resources, format == 'CSV')
 data <- filter(datastore_resources, row_number()==1) %>% get_resource()
 
 #### Save data ####
-file_path <- file.path(raw_data_dir, "raw_bikeway_data/bikeway_data.csv")
+file_path <- file.path(bikeway_file_path, "bikeway_data.csv")
 write_csv(data, file_path) 

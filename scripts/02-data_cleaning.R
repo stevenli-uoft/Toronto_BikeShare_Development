@@ -1,44 +1,71 @@
 #### Preamble ####
-# Purpose: Cleans the raw plane data recorded by two observers..... [...UPDATE THIS...]
-# Author: Rohan Alexander [...UPDATE THIS...]
-# Date: 6 April 2023 [...UPDATE THIS...]
-# Contact: rohan.alexander@utoronto.ca [...UPDATE THIS...]
-# License: MIT
-# Pre-requisites: [...UPDATE THIS...]
-# Any other information needed? [...UPDATE THIS...]
+# Purpose: Cleans the downloaded data from Open Data Toronto
+# Author: Steven Li
+# Date: 21 September 2024
+# Contact: stevency.li@mail.utoronto.ca
 
 #### Workspace setup ####
 library(tidyverse)
+library(readr)
+library(lubridate)
 
-#### Clean data ####
-raw_data <- read_csv("inputs/data/plane_data.csv")
+############################# Manage Directories #############################
+# Create directory to store cleaned data
+analysis_data_dir <- "data/analysis_data"
 
-cleaned_data <-
-  raw_data |>
-  janitor::clean_names() |>
-  select(wing_width_mm, wing_length_mm, flying_time_sec_first_timer) |>
-  filter(wing_width_mm != "caw") |>
-  mutate(
-    flying_time_sec_first_timer = if_else(flying_time_sec_first_timer == "1,35",
-                                   "1.35",
-                                   flying_time_sec_first_timer)
-  ) |>
-  mutate(wing_width_mm = if_else(wing_width_mm == "490",
-                                 "49",
-                                 wing_width_mm)) |>
-  mutate(wing_width_mm = if_else(wing_width_mm == "6",
-                                 "60",
-                                 wing_width_mm)) |>
-  mutate(
-    wing_width_mm = as.numeric(wing_width_mm),
-    wing_length_mm = as.numeric(wing_length_mm),
-    flying_time_sec_first_timer = as.numeric(flying_time_sec_first_timer)
-  ) |>
-  rename(flying_time = flying_time_sec_first_timer,
-         width = wing_width_mm,
-         length = wing_length_mm
-         ) |> 
-  tidyr::drop_na()
+# Check if the directory exists, if it does, delete it
+if (dir_exists(analysis_data_dir)) {
+  dir_delete(analysis_data_dir)  # Delete the folder and its contents
+}
+
+dir_create(analysis_data_dir)
+
+
+########################### Cleaning Bike Way Data ############################
+raw_data <- read_csv("data/raw_data/raw_bikeway_data/bikeway_data.csv")
+
+# Select to keep only the relevant columns
+cleaned_data <- raw_data %>%
+  select(OBJECTID, INSTALLED, UPGRADED, INFRA_HIGHORDER)
 
 #### Save data ####
-write_csv(cleaned_data, "outputs/data/analysis_data.csv")
+write_csv(cleaned_data, "data/analysis_data/bikeway_data.csv")
+
+
+########################## Cleaning Bike Share Data ###########################
+# Set the folder path to all bike share csv data
+folder_path <- "data/raw_data/raw_bikeshare_data"
+
+# List all CSV files in the folder
+csv_files <- list.files(path = folder_path, pattern = "\\.csv$", full.names = TRUE)
+
+# Function to standardize column names 
+# (to handle variations like "Trip Id" vs "trip_id" etc.)
+standardize_column_names <- function(df) {
+  df %>%
+    rename_with(~ str_to_lower(.), everything()) %>%
+    rename(
+      trip_id = matches("trip.*id"),
+      start_time = matches("start.*time|trip_start_time")
+    )
+}
+
+# Function to load, clean, convert start_time to date, and select only the required columns
+process_file <- function(file) {
+  data <- read_csv(file, show_col_types = FALSE)
+  
+  data %>%
+    standardize_column_names() %>%
+    select(trip_id, start_time) %>%
+    mutate(
+      # Convert start_time to Date format and extract only the date part
+      start_time = mdy_hms(start_time, quiet = TRUE) %>% as_date()
+    ) %>%
+    drop_na(trip_id, start_time)  # Drop rows where either of the required columns is missing
+}
+
+# Process all CSV files and combine them into a single dataframe
+combined_data <- csv_files %>% map_dfr(process_file)
+
+# Save the combined data to a new CSV file
+write_csv(combined_data, "data/analysis_data/cleaned_bikeshare_data.csv")
