@@ -2,8 +2,7 @@
 title: "My title"
 subtitle: "My subtitle if needed"
 author: 
-  - First author
-  - Another author
+  - Steven Li
 thanks: "Code and data are available at: LINK."
 date: today
 date-format: long
@@ -19,7 +18,6 @@ bibliography: references.bib
 #| message: false
 
 library(tidyverse)
-library(palmerpenguins)
 ```
 
 
@@ -39,14 +37,6 @@ Some of our data is of penguins (@fig-bills), from @palmerpenguins.
 #| label: fig-bills
 #| fig-cap: Bills of penguins
 #| echo: false
-
-ggplot(penguins, aes(x = island, fill = species)) +
-  geom_bar(alpha = 0.8) +
-  scale_fill_manual(values = c("darkorange","purple","cyan4"),
-                    guide = "none") +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1) +
-  coord_flip()
 ```
 
 Talk more about it.
@@ -59,48 +49,10 @@ And also planes (@fig-planes). (You can change the height and width, but don't w
 #| echo: false
 #| warning: false
 #| message: false
-
-analysis_data <- read_csv(here::here("data/analysis_data/analysis_data.csv"))
-
-analysis_data |> 
-  ggplot(aes(x = width, y = length)) +
-  geom_point(alpha = 0.8) +
-  theme_minimal() +
-  labs(x = "Wing width (mm)",
-       y = "Wing length (mm)")
 ```
 
 Talk way more about it. 
 
-
-
-# Model
-
-The goal of our modelling strategy is twofold. Firstly,...
-
-Here we briefly describe the Bayesian analysis model used to investigate... Background details and diagnostics are included in [Appendix -@sec-model-details].
-
-## Model set-up
-
-Define $y_i$ as the number of seconds that the plane remained aloft. Then $\beta_i$ is the wing width and $\gamma_i$ is the wing length, both measured in millimeters.  
-
-\begin{align} 
-y_i|\mu_i, \sigma &\sim \mbox{Normal}(\mu_i, \sigma) \\
-\mu_i &= \alpha + \beta_i + \gamma_i\\
-\alpha &\sim \mbox{Normal}(0, 2.5) \\
-\beta &\sim \mbox{Normal}(0, 2.5) \\
-\gamma &\sim \mbox{Normal}(0, 2.5) \\
-\sigma &\sim \mbox{Exponential}(1)
-\end{align}
-
-We run the model in R [@citeR] using the `rstanarm` package of @rstanarm. We use the default priors from `rstanarm`.
-
-
-### Model justification
-
-We expect a positive relationship between the size of the wings and time spent aloft. In particular...
-
-We can use maths by including latex between dollar signs, for instance $\theta$.
 
 
 # Results
@@ -112,11 +64,6 @@ Our results are summarized in @tbl-modelresults.
 #| eval: true
 #| warning: false
 #| message: false
-
-library(rstanarm)
-
-first_model <-
-  readRDS(file = here::here("models/first_model.rds"))
 ```
 
 ```{r}
@@ -125,16 +72,7 @@ first_model <-
 #| label: tbl-modelresults
 #| tbl-cap: "Explanatory models of flight time based on wing width and wing length"
 #| warning: false
-
-modelsummary::modelsummary(
-  list(
-    "First model" = first_model
-  ),
-  statistic = "mad",
-  fmt = 2
-)
 ```
-
 
 
 
@@ -178,16 +116,6 @@ In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. Th
 #| layout-ncol: 2
 #| fig-cap: "Examining how the model fits, and is affected by, the data"
 #| fig-subcap: ["Posterior prediction check", "Comparing the posterior with the prior"]
-
-pp_check(first_model) +
-  theme_classic() +
-  theme(legend.position = "bottom")
-
-posterior_vs_prior(first_model) +
-  theme_minimal() +
-  scale_color_brewer(palette = "Set1") +
-  theme(legend.position = "bottom") +
-  coord_flip()
 ```
 
 ## Diagnostics
@@ -205,10 +133,6 @@ posterior_vs_prior(first_model) +
 #| fig-cap: "Checking the convergence of the MCMC algorithm"
 #| fig-subcap: ["Trace plot", "Rhat plot"]
 #| layout-ncol: 2
-
-plot(first_model, "trace")
-
-plot(first_model, "rhat")
 ```
 
 
