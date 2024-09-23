@@ -24,7 +24,6 @@ dir_create(analysis_data_dir)
 ########################### Cleaning Bike Way Data ############################
 raw_data <- read_csv("data/raw_data/raw_bikeway_data/bikeway_data.csv")
 
-# Select to keep only the relevant columns
 cleaned_data <- raw_data %>%
   select(OBJECTID, INSTALLED, UPGRADED, INFRA_HIGHORDER)
 
@@ -32,40 +31,49 @@ cleaned_data <- raw_data %>%
 write_csv(cleaned_data, "data/analysis_data/bikeway_data.csv")
 
 
-########################## Cleaning Bike Share Data ###########################
-# Set the folder path to all bike share csv data
-folder_path <- "data/raw_data/raw_bikeshare_data"
-
-# List all CSV files in the folder
-csv_files <- list.files(path = folder_path, pattern = "\\.csv$", full.names = TRUE)
+################# Cleaning and Aggregating Bike Share Data ####################
+csv_files <- list.files(path = "data/raw_data/raw_bikeshare_data",
+                        pattern = "\\.csv$", full.names = TRUE)
 
 # Function to standardize column names 
-# (to handle variations like "Trip Id" vs "trip_id" etc.)
 standardize_column_names <- function(df) {
   df %>%
     rename_with(~ str_to_lower(.), everything()) %>%
     rename(
-      trip_id = matches("trip.*id"),
-      start_time = matches("start.*time|trip_start_time")
+      trip_id = matches("trip.id|trip_id|ï..trip.id"),
+      start_date = matches("start.time|trip_start_time")
     )
 }
 
-# Function to load, clean, convert start_time to date, and select only the required columns
+# Function to clean and convert data types
 process_file <- function(file) {
   data <- read_csv(file, show_col_types = FALSE)
   
+  # Ensure trip_id is numeric, then clean the data
   data %>%
     standardize_column_names() %>%
-    select(trip_id, start_time) %>%
+    select(trip_id, start_date) %>%
     mutate(
-      # Convert start_time to Date format and extract only the date part
-      start_time = mdy_hms(start_time, quiet = TRUE) %>% as_date()
+      # Convert trip_id to integer, handling non-integer values gracefully
+      trip_id = as.integer(as.numeric(trip_id)),
+      
+      # Convert start_date from chr to Date, trying different formats
+      start_date = parse_date_time(start_date, 
+                                   orders = c("mdy HMS", "mdy HM", "mdy",
+                                              "m/d/y H:M:S", "m/d/y H:M", 
+                                              "m/d/y"))
     ) %>%
-    drop_na(trip_id, start_time)  # Drop rows where either of the required columns is missing
+    mutate(start_date = floor_date(start_date, unit = "month")) %>%
+    drop_na(trip_id, start_date)  
 }
 
-# Process all CSV files and combine them into a single dataframe
 combined_data <- csv_files %>% map_dfr(process_file)
 
-# Save the combined data to a new CSV file
-write_csv(combined_data, "data/analysis_data/cleaned_bikeshare_data.csv")
+# Aggregate data by month, calculating total rides per month
+monthly_aggregated_data <- combined_data %>%
+  group_by(start_date) %>%               
+  summarize(total_rides = n()) %>%       
+  arrange(start_date)
+
+write_csv(monthly_aggregated_data, 
+          "data/analysis_data/monthly_aggregated_bikeshare_data.csv")

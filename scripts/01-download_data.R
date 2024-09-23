@@ -9,8 +9,19 @@ library(opendatatoronto)
 library(tidyverse)
 library(fs)  # For file system handling
 
+############################# !!! Please Read !!! #############################
+############################# Data Download Issue #############################
+# Unable to download November 2022 Bike Share Ridership data, due to it being
+# a zip file embedded in another  zip file. Follow these steps after running 
+# the script below:
+# 1. Go to Open Data Toronto and search up "Bike Share Toronto Ridership Data"
+# 2. Download the bikeshare-ridership-2022 zip file
+# 3. Unzip the file, and unzip "Bike share ridership 2022-11.zip"
+# 4. Import "Bike share ridership 2022-11.csv" into raw_data/raw_bikeshare_data
+###############################################################################
+
+
 ############################# Manage Directories #############################
-# Create directories to store raw data CSV files (clear if it exists first)
 raw_data_dir <- "data/raw_data"
 
 # Check if the directory exists, if it does, delete it

@@ -18,77 +18,83 @@ bibliography: references.bib
 #| message: false
 
 library(tidyverse)
+library(dplyr)
+library(knitr)
 ```
 
 
 # Introduction
 
-You can and should cross-reference sections and sub-sections. We use @citeR and @rohan.
-
-The remainder of this paper is structured as follows. @sec-data....
-
-
-
 # Data {#sec-data}
-
-Some of our data is of penguins (@fig-bills), from @palmerpenguins.
-
 ```{r}
-#| label: fig-bills
-#| fig-cap: Bills of penguins
-#| echo: false
-```
-
-Talk more about it.
-
-And also planes (@fig-planes). (You can change the height and width, but don't worry about doing that until you have finished every other aspect of the paper - Quarto will try to make it look nice and the defaults usually work well once you have enough text.)
-
-```{r}
-#| label: fig-planes
-#| fig-cap: Relationship between wing length and width
 #| echo: false
 #| warning: false
 #| message: false
+
+bikeShare_data <- read_csv(here::here(
+  "data/analysis_data/cleaned_bikeshare_data.csv"))
+
+bikeWay_data <- read_csv(here::here("data/analysis_data/bikeway_data.csv"))
 ```
 
-Talk way more about it. 
+```{r}
+#| label: fig-sample_bikeshare
+#| title: Sample of Toronto's Bike Share Ridership Data
+#| echo: false
+#| warning: false
+#| message: false
 
+bikeShare_sample <- bikeShare_data %>% sample_n(5) %>% as_tibble()
+
+colnames(bikeShare_sample) <- c("Trip ID", "Date")
+
+kable(bikeShare_sample)
+```
+
+
+```{r}
+#| label: fig-sample_bikeway
+#| title: Sample of Toronto's Cycling Network Data
+#| echo: false
+#| warning: false
+#| message: false
+
+bikeWay_sample <- bikeWay_data %>% sample_n(5) %>% as_tibble()
+
+colnames(bikeWay_sample) <- c("Trip ID", "Date")
+
+kable(bikeWay_sample)
+```
+
+
+```{r}
+#| label: fig-yearly_ridership
+#| title: Yearly Bike Share Ridership
+#| echo: false
+#| warning: false
+#| message: false
+
+yearly_bike_share_usage <- bikeShare_data %>%
+  mutate(year = year(ymd(start_date))) %>%
+  group_by(year) %>%
+  summarise(total_rides = n())
+
+kable(yearly_bike_share_usage)
+```
 
 
 # Results
-
-Our results are summarized in @tbl-modelresults.
-
-```{r}
-#| echo: false
-#| eval: true
-#| warning: false
-#| message: false
-```
-
-```{r}
-#| echo: false
-#| eval: true
-#| label: tbl-modelresults
-#| tbl-cap: "Explanatory models of flight time based on wing width and wing length"
-#| warning: false
-```
-
 
 
 # Discussion
 
 ## First discussion point {#sec-first-point}
 
-If my paper were 10 pages, then should be be at least 2.5 pages. The discussion is a chance to show off what you know and what you learnt from all this. 
-
 ## Second discussion point
 
 ## Third discussion point
 
 ## Weaknesses and next steps
-
-Weaknesses and next steps should also be included.
 
 \newpage
 
@@ -99,43 +105,8 @@ Weaknesses and next steps should also be included.
 
 # Additional data details
 
-# Model details {#sec-model-details}
-
-## Posterior predictive check
-
-In @fig-ppcheckandposteriorvsprior-1 we implement a posterior predictive check. This shows...
-
-In @fig-ppcheckandposteriorvsprior-2 we compare the posterior with the prior. This shows... 
-
-```{r}
-#| eval: true
-#| echo: false
-#| message: false
-#| warning: false
-#| label: fig-ppcheckandposteriorvsprior
-#| layout-ncol: 2
-#| fig-cap: "Examining how the model fits, and is affected by, the data"
-#| fig-subcap: ["Posterior prediction check", "Comparing the posterior with the prior"]
-```
 
 ## Diagnostics
-
-@fig-stanareyouokay-1 is a trace plot. It shows... This suggests...
-
-@fig-stanareyouokay-2 is a Rhat plot. It shows... This suggests...
-
-```{r}
-#| echo: false
-#| eval: true
-#| message: false
-#| warning: false
-#| label: fig-stanareyouokay
-#| fig-cap: "Checking the convergence of the MCMC algorithm"
-#| fig-subcap: ["Trace plot", "Rhat plot"]
-#| layout-ncol: 2
-```
-
-
 
 \newpage
 
