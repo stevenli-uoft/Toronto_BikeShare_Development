@@ -23,4 +23,4 @@ To reproduce the graphs and tables from the paper, follow these steps:
 7. Open the Quarto document in `paper/paper.qmd` and render the PDF file.
 
 ## Statement on LLM usage
-Large Language Models such as GPT-4o were used to assist in parts of the data analysis and writing process. The chat logs are saved in the inputs/llms folder for full transparency.
+Large Language Models such as GPT-4o were used to assist in parts of the data analysis and writing process. The chat logs are saved in the `other/llm` folder for full transparency.
