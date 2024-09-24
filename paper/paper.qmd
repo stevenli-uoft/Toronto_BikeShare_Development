@@ -1,12 +1,11 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
+title: "Outpacing the Lanes: Toronto's Bike Share Ridership Surges Ahead of Infrastructure Growth"
 author: 
   - Steven Li
-thanks: "Code and data are available at: LINK."
+thanks: "Code and data are available at: https://github.com/stevenli-uoft/Toronto_BikeShare_Development"
 date: today
 date-format: long
-abstract: "First sentence. Second sentence. Third sentence. Fourth sentence."
+abstract: "This paper analyzes Toronto's Bike Share ridership and cycling infrastructure development from 2017 to 2023 using open data. Findings reveal a nearly fivefold increase in annual Bike Share rides, from 1.2 million to 5.7 million, outpacing the growth of cycling infrastructure. While bikeways increased from 539 in 2001 to over 1,400 by 2023, the expansion rate lags behind ridership growth. The analysis highlights a shift towards safer infrastructure, with increased focus on protected lanes. These trends underscore the need for accelerated and strategic expansion of Toronto's cycling network to meet growing demand and ensure safe, accessible cycling options for residents."
 format: pdf
 number-sections: true
 bibliography: references.bib
@@ -20,10 +19,60 @@ bibliography: references.bib
 library(tidyverse)
 library(dplyr)
 library(knitr)
+library(lubridate)
+library(ggplot2)
+
+set.seed(778)
 ```
 
+\newpage 
 
 # Introduction
+As cities worldwide grapple with issues of congestion, pollution, and the need 
+for sustainable transportation, many are turning to cycling as a potential 
+solution. Toronto, Canada's largest city, has been at the forefront of this 
+trend, implementing a bike-sharing program and expanding its cycling 
+infrastructure to encourage more residents to adopt this eco-friendly mode of 
+transport.
+
+Toronto's Bike Share program, launched in 2011, has become an integral part of
+the city's transportation network. Managed by Bike Share Toronto under the 
+Toronto Parking Authority, the program offers thousands of bicycles at hundreds
+of stations throughout the city, providing an accessible and affordable option 
+for short trips [@bikeshareToronto]. The system has grown significantly since 
+its inception, recently expanding to include e-bikes and integrating with the 
+city's public transit system [@ttcIntegration].
+
+Concurrent with the growth of the Bike Share program, Toronto has been 
+investing in its cycling infrastructure. The city's Cycling Network Plan 
+outlines key improvements and expansions to bike lanes, trails, and shared 
+routes [@cyclingNetworkPlan]. This includes the introduction of dedicated bike
+lanes in high-traffic areas, the development of multi-use trails, and the 
+continuous expansion of the cycling network to improve connectivity across 
+the city.
+
+Several key initiatives have marked Toronto's commitment to cycling 
+infrastructure. The Bloor-Danforth Pilot project in 2016 demonstrated the 
+viability of expanded cycling lanes on major roads [@bloorDanforthPilot]. 
+The ActiveTO program, initiated in response to the COVID-19 pandemic, 
+temporarily closed major streets to car traffic, leading to some bike lanes 
+becoming permanent fixtures [@activeTO]. More recently, the city has committed 
+to adding 100 kilometers of new cycling infrastructure between 2022 and 2024, 
+with plans to complete 500 kilometers by 2030 [@cyclingPlan2030].
+
+As Toronto continues to invest in both its Bike Share program and cycling 
+infrastructure, an important question arises: Is the city's bikeway 
+infrastructure keeping pace with the growth in bike share ridership? This
+paper aims to explore this question by analyzing data on Toronto's Bike Share 
+ridership and the development of its cycling infrastructure from 2017 to 2023.
+
+The remainder of this paper is structured as follows. @sec-data describes the 
+data sources and methodology used in our analysis. @sec-results presents the 
+results of our data exploration, including trends in Bike Share ridership and
+the evolution of Toronto's cycling infrastructure. @sec-discussion discusses 
+the implications of these findings, addressing the relationship between
+infrastructure development and ridership growth. Finally, @sec-limit concludes
+with limitations and suggestions for future research and policy considerations.
 
 # Data {#sec-data}
 ```{r}
@@ -32,69 +81,380 @@ library(knitr)
 #| message: false
 
 bikeShare_data <- read_csv(here::here(
-  "data/analysis_data/cleaned_bikeshare_data.csv"))
+  "data/analysis_data/monthly_aggregated_bikeshare_data.csv"))
+bikeShare_data <- bikeShare_data %>% filter(year(start_date) <= 2023)
 
 bikeWay_data <- read_csv(here::here("data/analysis_data/bikeway_data.csv"))
+bikeWay_data <- bikeWay_data %>% filter(INSTALLED <= 2023)
+
+bikeway_colors <- c("Shared Roadways" = "#e15759", 
+                    "On-Road Lanes" = "#76b7b2",
+                    "Protected Lanes" = "#2ca02c")
 ```
 
+This study utilizes two primary datasets: Toronto's Bike Share ridership data 
+[@bikeShareData] and the city's Cycling Network (Bikeways) data 
+[@bikeWayData]. Both datasets were obtained from the City of Toronto's Open Data Portal [@torontoOpenData], providing a comprehensive view of cycling infrastructure from 2001 to 2024, and Bike Share ridership in the city from 2017 to 2023.
+
+## Bike Share Ridership Data
+The Bike Share ridership data was collected by Bike Share Toronto, a division of the Toronto Parking Authority. The raw data consisted of anonymized trip data, with each month or quarter provided as a separate CSV file containing all unique trips. A "ride" in this context is defined as a journey that starts at one station and ends at another.
+
+To clean and prepare this data for analysis, we downloaded all monthly and quarterly CSV files, extracted only the required columns (trip ID and start date), and performed necessary data cleaning operations. This process involved standardizing column names across files, converting data types, and aggregating the data to calculate monthly total ridership figures. The cleaned data provides a comprehensive view of Bike Share usage from January 2017 to December 2023.
+
+One challenge in processing this data was the inconsistency in column names and data formats across different years. This was addressed through a custom R function that standardized column names and data types across all files. Additionally, any incomplete or invalid entries were removed during the cleaning process to ensure data integrity.
+
+A sample of this processed dataset can be seen in (@tbl-sample-bikeshare), showcasing the year and month of observation along with the total number of rides for that month. This granular monthly data allows for analysis of seasonal trends and year-over-year growth in ridership.
+
 ```{r}
-#| label: fig-sample_bikeshare
-#| title: Sample of Toronto's Bike Share Ridership Data
+#| label: tbl-sample-bikeshare
+#| tbl-cap: "Sample of Toronto's Bike Share Monthly Ridership Data (2017-2023)"
 #| echo: false
 #| warning: false
 #| message: false
 
-bikeShare_sample <- bikeShare_data %>% sample_n(5) %>% as_tibble()
+bikeShare_sample <- bikeShare_data %>% sample_n(5) %>% 
+  as_tibble() %>% arrange(start_date)
 
-colnames(bikeShare_sample) <- c("Trip ID", "Date")
+colnames(bikeShare_sample) <- c("Year & Month", "Total Monthly Rides")
 
-kable(bikeShare_sample)
+kable(bikeShare_sample, format.args = list(big.mark = ","))
 ```
 
+To provide an overview of the Bike Share program's growth, we aggregated the monthly data into annual statistics, as shown in (@tbl-ridership_summary_stats).
 
 ```{r}
-#| label: fig-sample_bikeway
-#| title: Sample of Toronto's Cycling Network Data
+#| label: tbl-ridership_summary_stats
+#| tbl-cap: "Annual Bike Share Ridership Summary Statistics"
 #| echo: false
 #| warning: false
 #| message: false
 
-bikeWay_sample <- bikeWay_data %>% sample_n(5) %>% as_tibble()
+bikeShare_summary <- bikeShare_data %>%
+  mutate(year = year(start_date)) %>%  
+  group_by(year) %>%   
+  summarise(
+    total_rides = sum(total_rides),
+    avg_monthly_rides = mean(total_rides)
+  ) %>%
+  mutate(
+    year_on_year_growth = (total_rides - lag(total_rides)) / lag(total_rides) * 100
+  ) %>%
+  mutate(
+    year_on_year_growth = round(year_on_year_growth, 2),  # Round to 2 decimal places
+    total_rides = format(total_rides, big.mark = ","),  # Add comma separators
+    avg_monthly_rides = format(round(avg_monthly_rides), big.mark = ",")  # Round and add comma separators
+  )
 
-colnames(bikeWay_sample) <- c("Trip ID", "Date")
+colnames(bikeShare_summary) <- c("Year", "Total Rides", "Avg Monthly Rides", 
+                                 "Year-on-year Growth (%)")
+
+kable(bikeShare_summary)
+```
+
+This summary reveals a consistent increase in total annual rides from 1,190,320 in 2017 to 5,713,141 in 2023, representing nearly a fivefold increase over seven years. The average monthly rides have grown correspondingly, indicating a substantial expansion of the program's usage.
+
+## Cycling Network (Bikeways) Data
+The Cycling Network data was sourced from the City of Toronto's Transportation Services division. This dataset provides detailed information about the city's bikeways, including their construction year, any upgrades, and the type of bikeway. (@tbl-sample_bikeway) offers a sample of this dataset.
+
+```{r}
+#| label: tbl-sample_bikeway
+#| tbl-cap: "Sample of Toronto's Cycling Network (Bikeways) Data (2001-2023)"
+#| echo: false
+#| warning: false
+#| message: false
+
+bikeWay_sample <- bikeWay_data %>% sample_n(5) %>% 
+  as_tibble() %>% arrange(INSTALLED)
+
+colnames(bikeWay_sample) <- c("Route ID", "Constructed Year", "Upgraded Year"
+                              , "Bike Way Type")
 
 kable(bikeWay_sample)
 ```
 
+The raw data contained more detailed specifications for bikeway types, which we grouped into three main categories for ease of understanding and analysis:
+
+1. **Protected Lanes**: Physically separated and protected from motor vehicle traffic. This includes Bi-Direction Cycle Tracks, Cycle Tracks, and Multi-Use Trails.
+2. **On-Road Lanes**: Designated lanes on the road, but not physically separated. This category encompasses various types of bike lanes.
+3. **Shared Roadways**: Roads where cyclists and motor vehicles share the same space. This includes Sharrows, Signed Routes, and Park Roads.
+
+It's important to note that in the original dataset, bikeways constructed before 2001 were all labeled with a construction year of 2001. This data limitation could potentially lead to skewing or misunderstanding in the analysis, particularly for earlier years. Additionally, some entries with invalid years (e.g., year labeled as "1") or missing data were filtered out during the cleaning process to ensure data quality.
+
+Both datasets were cleaned and processed using R [@RCoreTeam2023], with additional support from the tidyverse [@tidyverse], dplyr [@dplyr], and lubridate [@lubridate] packages. The cleaning process involved removing any incomplete entries, standardizing date formats for consistency across the datasets, and aggregating data where necessary.
+
+These two datasets were chosen as they represent the most up-to-date and accurate information available on Toronto's cycling infrastructure and Bike Share usage. Other potentially relevant datasets, such as bike lanes measured in kilometers or total bike counts, were considered but ultimately not used due to being outdated or no longer maintained.
+
+When analyzed in tandem, these datasets provide a comprehensive picture of how Toronto's cycling infrastructure has developed in relation to the growing usage of the Bike Share program. This analysis aims to shed light on whether the city's bikeway infrastructure is keeping pace with the increasing demand for cycling as a mode of transportation in Toronto.
+
+# Results {#sec-results}
+Our analysis of Toronto's Bike Share ridership and cycling infrastructure data from 2017 to 2023 reveals several key trends and patterns, shedding light on the relationship between infrastructure development and cycling adoption in the city.
+
+## Bike Share Ridership Trends
+The monthly ridership trend for Toronto's Bike Share program from 2017 to 2023 is illustrated in (@fig-ridership_monthly_graph). The graph shows a clear upward trajectory in ridership over the years, with pronounced seasonal fluctuations. Peak usage consistently occurs during the summer months, while winter sees a significant reduction in rides. Despite these seasonal variations, the overall trend line demonstrates steady growth in ridership.
+
+The most notable features of this trend include:
+
+1. A consistent year-over-year increase in peak monthly ridership, indicating growing popularity of the program.
+2. Gradual expansion of the riding season, with shoulder months (spring and fall) showing increased activity over time, suggesting a broadening user base.
+3. A brief dip in ridership during early 2020, likely attributable to initial COVID-19 lockdowns, followed by a robust recovery. This recovery may be partially attributed to the ActiveTO program, which closed major streets to car traffic, creating more space for cyclists [@activeTO].
 
 ```{r}
-#| label: fig-yearly_ridership
-#| title: Yearly Bike Share Ridership
+#| label: fig-ridership_monthly_graph
+#| fig-cap: "Toronto Bike Share Monthly Ridership Trend (2017-2023)"
 #| echo: false
 #| warning: false
 #| message: false
 
-yearly_bike_share_usage <- bikeShare_data %>%
-  mutate(year = year(ymd(start_date))) %>%
-  group_by(year) %>%
-  summarise(total_rides = n())
-
-kable(yearly_bike_share_usage)
+ggplot(bikeShare_data, aes(x = start_date, y = total_rides)) +
+     geom_line(aes(color = "Monthly Ridership"), size = 1) +
+     geom_smooth(aes(color = "Trendline"), method = "loess", se = FALSE) +
+     labs(
+       x = "Date",
+       y = "Total Rides",
+       color = NULL
+     ) +
+     theme_minimal() +
+     scale_color_manual(values = c("Monthly Ridership" = "#1f77b4", 
+                                   "Trendline" = "#ff7f0e")) +
+     scale_x_date(
+       date_breaks = "1 year", 
+       date_labels = "%Y",
+       limits = c(as.Date("2017-01-01"), as.Date("2023-12-31")),
+       expand = c(0, 0)
+     ) + 
+     scale_y_continuous(
+       labels = function(x) paste0(x/1000, "k"),
+       breaks = seq(0, max(bikeShare_data$total_rides), by = 150000),
+       minor_breaks = seq(0, max(bikeShare_data$total_rides), by = 75000)
+     ) +
+     theme(
+       legend.position = "top",
+       panel.grid.major = element_line(color = "gray85", linewidth = 0.35)
+     )
 ```
 
+## Cycling Infrastructure Development
+A breakdown of bikeway types constructed each year from 2002 to 2023 is 
+presented by (@fig-bikeway_type_constructed_graph). This graph reveals several 
+interesting patterns in the development of Toronto's cycling infrastructure:
 
-# Results
+1. A significant spike in bikeway installations occurred between 2005 and 2007, primarily driven by the addition of shared roadways. This surge aligns with the city's efforts to implement its 2001 Bike Plan, which aimed to create 1,000 km of bikeways by 2011. While the city fell short of this ambitious target, the period saw a substantial increase in shared roadways, adding over 145 km by 2007 [@ratchford]. As shown in (@fig-cumulative-proportion-bikeways), this rapid expansion of shared roadways significantly altered the proportional makeup of Toronto's bikeway network, with shared roadways dominating the infrastructure mix for several years following 2007.
+2. After 2007, there's a noticeable shift towards more protected lanes and on-road lanes, reflecting growing concerns about cyclist safety and calls for more separated cycling infrastructure.
+3. The installation of new bikeways has been relatively consistent from 2010 
+onwards, with a mix of all three types (shared roadways, on-road lanes, and 
+protected lanes) being added each year.
+
+```{r}
+#| label: fig-bikeway_type_constructed_graph
+#| fig-cap: "Breakdown of Bikeway Types by Installation Year (2002-2023)"
+#| fig-foot: "Bikeways installed prior to 2001 are shown with an install year of 2001"
+#| echo: false
+#| warning: false
+#| message: false
+
+bikeWay_type_summary <- bikeWay_data %>%
+  filter(INSTALLED >= 2002 & INSTALLED <= 2023) %>%
+  group_by(INSTALLED, INFRA_HIGHORDER) %>%
+  summarise(count = n())
+
+ggplot(bikeWay_type_summary, aes(x = as.factor(INSTALLED), y = count, fill = INFRA_HIGHORDER)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = bikeway_colors) +
+  labs(
+    x = "Year Installed",
+    y = "Count of Bikeways",
+    fill = "Bikeway Types:"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(color = "gray85", linewidth=0.35),
+    legend.position = "top"
+  )
+```
+
+Bikeways were also upgraded throughout the years to improve the quality and
+safety for bikers.(@fig-bikeway_type_upgraded_graph) shows the breakdown of 
+bikeway upgrades by year from 2002 to 2023. Notable observations include:
+
+1. A significant spike in upgrades around 2015, primarily focused on converting existing bikeways to protected lanes. This likely reflects the city's response to increasing demands for safer cycling infrastructure and aligns with several initiatives that began development around that time.
+2. After 2015, upgrades have continued at a lower but steady rate, with a focus on improving existing infrastructure rather than just adding new bikeways.
+
+```{r}
+#| label: fig-bikeway_type_upgraded_graph
+#| fig-cap: "Breakdown of Bikeway Types by Upgraded Year (2002-2023)"
+#| echo: false
+#| warning: false
+#| message: false
+
+bikeWay_type_summary <- bikeWay_data %>%
+  filter(UPGRADED >= 2002 & UPGRADED <= 2023) %>%
+  group_by(UPGRADED, INFRA_HIGHORDER) %>%
+  summarise(count = n()) %>%
+  drop_na(UPGRADED)
+
+ggplot(bikeWay_type_summary, aes(x = as.factor(UPGRADED), y = count, fill = INFRA_HIGHORDER)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = bikeway_colors) +
+  labs(
+    x = "Year Upgraded",
+    y = "Count of Bikeways",
+    fill = "Bikeway Types:"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(color = "gray85", linewidth=0.35),
+    legend.position = "top"
+  )
+```
+
+## Cumulative Growth of Cycling Infrastructure
+To provide a complete understanding of Toronto's entire Cycling network, 
+(@fig-cumulative-growth) presents the cumulative growth of different bikeway 
+types from 2001 to 2023, demonstrating:
+
+1. A steady increase in the total number of bikeways over the two decades, from 539 in 2001 to 1,446 by 2023.
+2. The rapid growth of shared roadways in the mid-2000s, which has since 
+stabilized as a proportion of total infrastructure.
+3. A consistent growth in protected lanes, particularly accelerating in recent years, aligning with the city's commitment to add 100 kilometers of new cycling infrastructure between 2022 and 2024, and 500 kilometers by 2030 [@cyclingPlan2030].
+
+```{r}
+#| label: fig-cumulative-growth
+#| fig-cap: "Cumulative Bikeway types by Installed Year (2001-2023)"
+#| echo: false
+#| warning: false
+#| message: false
+
+cumulative_bikeways <- bikeWay_data %>%
+  filter(INSTALLED >= 2001 & INSTALLED <= 2023) %>%
+  group_by(INSTALLED, INFRA_HIGHORDER) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  complete(INSTALLED = 2001:2023, INFRA_HIGHORDER, fill = list(count = 0)) %>%
+  arrange(INFRA_HIGHORDER, INSTALLED) %>%
+  group_by(INFRA_HIGHORDER) %>%
+  mutate(cumulative_count = cumsum(count)) %>%
+  ungroup()
+
+# Create the bar graph
+ggplot(cumulative_bikeways, aes(x = INSTALLED, y = cumulative_count, fill = INFRA_HIGHORDER)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(values = bikeway_colors) +
+  labs(
+    x = "Year Installed",
+    y = "Cumulative Number of Bikeways",
+    fill = "Bikeway Types:"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major = element_line(color = "gray85", linewidth = 0.35),
+    legend.position = "top"
+  ) +
+  scale_x_continuous(breaks = seq(2001, 2023, by = 1))
+```
+
+\newpage
+## Comparison of Ridership and Infrastructure Growth
+To directly compare the ridership and infrastructure growth, (@fig-combined_ridership_bikeways_graph) provides a comparative view of annual 
+Bike Share ridership and the cumulative number of bikeways from 2017 to 2023.
+This graph reveals:
+
+1. A strong positive correlation between the growth in Bike Share ridership 
+and the expansion of cycling infrastructure.
+2. Bike Share ridership has grown at a faster rate than the expansion of bikeways. However, it's important to note that this comparison is limited by the use of bikeway count rather than total length, which might provide a more accurate representation of infrastructure growth.
+3. Despite the apparent slower growth of bikeways compared to ridership, the continuous increase in infrastructure likely supports and encourages the growing popularity of cycling in Toronto.
+
+```{r}
+#| label: fig-combined_ridership_bikeways_graph
+#| fig-cap: "Comparison of Annual Bike Share Ridership and Cumulative Bikeways (2017-2023)"
+#| echo: false
+#| warning: false
+#| message: false
+
+# Summarize cumulative bikeway data for the years 2017-2023
+bikeWay_cumulative_summary <- bikeWay_data %>%
+  filter(INSTALLED <= 2023) %>%
+  group_by(INSTALLED) %>%
+  summarise(total_bikeways_installed = n()) %>%
+  mutate(cumulative_bikeways = cumsum(total_bikeways_installed)) %>%
+  filter(INSTALLED >= 2017)
+
+# Summarize bike share data for the years 2017-2023
+bikeShare_yearly_summary <- bikeShare_data %>%
+  mutate(year = year(start_date)) %>%
+  filter(year >= 2017 & year <= 2023) %>%
+  group_by(year) %>%
+  summarise(total_rides = sum(total_rides))
+
+# Merge the two datasets by year
+combined_data <- left_join(bikeShare_yearly_summary, 
+                           bikeWay_cumulative_summary, 
+                           by = c("year" = "INSTALLED"))
 
 
-# Discussion
+ggplot(combined_data, aes(x = year)) +
+  geom_bar(aes(y = cumulative_bikeways * 2000, fill = "Bikeways"), 
+           stat = "identity", alpha = 0.75) +
+  geom_line(aes(y = total_rides, color = "Ridership"), size = 1) +
+  scale_y_continuous(
+    name = "Total Annual Bike Share Rides", 
+    sec.axis = sec_axis(~ . / 2000, name = "Cumulative Number of Bikeways"),
+    labels = function(x) paste0(x/1000000, "M"),
+    breaks = seq(0, max(combined_data$total_rides), by = 1000000),
+    minor_breaks = seq(0, max(combined_data$total_rides), by = 500000)
+  ) +
+  scale_x_continuous(
+    breaks = seq(2017, 2023, by = 1),
+    limits = c(2016.5, 2023.5),
+    expand = c(0, 0)
+  ) +
+  scale_color_manual(values = c("Ridership" = "#1f77b4")) +
+  scale_fill_manual(values = c("Bikeways" = "#2ca02c")) +
+  labs(
+    x = "Year",
+    color = NULL,
+    fill = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    panel.grid.major = element_line(color = "gray85", linewidth=0.35)
+  )
+```
 
-## First discussion point {#sec-first-point}
+These results suggest that while Toronto has made significant strides in expanding its cycling infrastructure, the growth in Bike Share ridership may be outpacing the development of new bikeways. This trend underscores the importance of continued investment in cycling infrastructure to meet the growing demand for safe and accessible cycling options in the city.
 
-## Second discussion point
+# Discussion {#sec-discussion}
+The analysis of Toronto's Bike Share ridership and cycling infrastructure development from 2017 to 2023 reveals a complex interplay between infrastructure investment and cycling adoption in the city. This discussion will explore the implications of our findings, addressing the central question of whether Toronto's bikeway infrastructure is keeping pace with the growth in Bike Share ridership.
 
-## Third discussion point
+## Rapid Growth in Bike Share Utilization
+The most striking finding from our analysis is the dramatic increase in Bike Share ridership over the study period. The nearly fivefold increase in annual rides from 2017 to 2023 demonstrates a significant shift in urban mobility patterns and a growing acceptance of cycling as a viable transportation option in Toronto. This trend aligns with global movements towards more sustainable and active transportation modes in urban areas.
 
-## Weaknesses and next steps
+The consistent year-over-year growth, even in the face of the COVID-19 pandemic, suggests a resilient and potentially permanent change in transportation habits among Toronto residents. This rapid adoption of Bike Share presents both opportunities and challenges for urban planners and policymakers.
+
+## Infrastructure Development: Progress and Challenges
+Our analysis of cycling infrastructure development reveals a more nuanced picture. While there has been steady growth in the total number of bikeways, from approximately 600 in 2001 to over 1,400 by 2023, the rate of infrastructure expansion has not matched the pace of Bike Share ridership growth. This disparity raises questions about the capacity of the current infrastructure to safely and efficiently accommodate the increasing number of cyclists.
+
+The shift in focus from shared roadways to more protected lanes, particularly evident after 2007, reflects an evolving understanding of cyclist safety needs. This aligns with the city's commitment to Vision Zero and Complete Streets policies, which prioritize safety for all road users [@cyclingNetworkPlan]. However, the data suggests that there may be a need for accelerated implementation of these safer infrastructure options to meet the growing demand.
+
+## Policy Implications and Future Directions
+The rapid growth in Bike Share ridership, outpacing infrastructure development, underscores the need for more aggressive expansion of Toronto's cycling network. The city's recent commitment to adding 100 kilometers of new cycling infrastructure between 2022 and 2024, with plans to complete 500 kilometers by 2030 [@cyclingPlan2030], is a step in the right direction. However, our findings suggest that even this ambitious plan may need to be accelerated or expanded to meet the growing demand.
+Several policy implications emerge from our analysis:
+
+1. Prioritizing Protected Infrastructure: Given the clear preference for safer cycling options, future infrastructure development should prioritize protected lanes over shared roadways where feasible.
+2. Strategic Expansion: The city should consider strategically expanding the Bike Share program in tandem with new infrastructure development to ensure a balanced growth of both supply and demand.
+3. Data-Driven Planning: Continued monitoring and analysis of ridership patterns and infrastructure usage can inform more targeted and effective cycling network expansion.
+4. Integration with Public Transit: The success of the Bike Share program suggests opportunities for further integration with other forms of public transportation, potentially addressing last-mile connectivity issues.
+
+## Limitations {#sec-limit}
+While our study provides valuable insights into the relationship between cycling infrastructure and Bike Share usage in Toronto, it has several limitations that suggest avenues for future research:
+
+1. Geographic Distribution: This study did not examine the spatial distribution of Bike Share usage and infrastructure. Future research could explore how infrastructure development in specific neighborhoods correlates with local Bike Share usage.
+2. Quality of Infrastructure: Our analysis focused on the quantity of infrastructure rather than its quality or connectivity. Future studies could incorporate measures of infrastructure quality and network connectivity to provide a more comprehensive understanding of the cycling landscape in Toronto.
+3. User Demographics: Incorporating data on user demographics could provide insights into who is benefiting from the Bike Share program and where there might be opportunities for greater inclusivity.
+
+In conclusion, while Toronto has made significant strides in expanding its cycling infrastructure and Bike Share program, our analysis suggests that infrastructure development is lagging behind the rapid growth in cycling demand. As the city continues to invest in sustainable transportation options, a data-driven, strategic approach to cycling infrastructure development will be crucial in supporting and encouraging the growing cycling culture in Toronto.
 
 \newpage
 
@@ -102,15 +462,58 @@ kable(yearly_bike_share_usage)
 
 # Appendix {-}
 
+The following graph shows how the composition of Toronto's bikeway network has evolved over time, taking into account the cumulative additions of different bikeway types.
 
-# Additional data details
+```{r}
+#| label: fig-cumulative-proportion-bikeways
+#| fig-cap: "Proportional Breakdown of Cumulative Bikeways by Type and Year (2001-2023)"
+#| echo: false
+#| warning: false
+#| message: false
 
+# Calculate cumulative counts for each bikeway type by year
+cumulative_bikeways <- bikeWay_data %>%
+  filter(INSTALLED >= 2001 & INSTALLED <= 2023) %>%
+  group_by(INSTALLED, INFRA_HIGHORDER) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  complete(INSTALLED = 2001:2023, INFRA_HIGHORDER, fill = list(count = 0)) %>%
+  arrange(INFRA_HIGHORDER, INSTALLED) %>%
+  group_by(INFRA_HIGHORDER) %>%
+  mutate(cumulative_count = cumsum(count)) %>%
+  ungroup()
 
-## Diagnostics
+# Calculate the total cumulative count for each year
+total_cumulative <- cumulative_bikeways %>%
+  group_by(INSTALLED) %>%
+  summarise(total = sum(cumulative_count))
+
+# Join the total to the main dataset and calculate proportions
+cumulative_proportions <- cumulative_bikeways %>%
+  left_join(total_cumulative, by = "INSTALLED") %>%
+  mutate(proportion = cumulative_count / total)
+
+# Create the proportional stacked bar plot
+ggplot(cumulative_proportions, aes(x = INSTALLED, y = proportion, fill = INFRA_HIGHORDER)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values = bikeway_colors) +
+  labs(
+    x = "Year",
+    y = "Proportion of Cumulative Bikeways",
+    fill = "Bikeway Type"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  ) +
+  scale_x_continuous(breaks = seq(2001, 2023, by = 2))
+```
+
+This graph provides additional context to the absolute numbers shown in the main text. It illustrates how the relative proportions of different bikeway types have changed as the network has grown, which may reflect shifts in urban planning priorities or infrastructure strategies over the years.
+
 
 \newpage
-
-
-# References
+# References {-}
 
 

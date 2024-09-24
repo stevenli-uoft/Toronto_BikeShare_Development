@@ -8,6 +8,7 @@
 library(tidyverse)
 library(readr)
 library(lubridate)
+library(fs)
 
 ############################# Manage Directories #############################
 # Create directory to store cleaned data
@@ -22,13 +23,27 @@ dir_create(analysis_data_dir)
 
 
 ########################### Cleaning Bike Way Data ############################
+# Read in the raw data
 raw_data <- read_csv("data/raw_data/raw_bikeway_data/bikeway_data.csv")
 
+# Clean the data
 cleaned_data <- raw_data %>%
-  select(OBJECTID, INSTALLED, UPGRADED, INFRA_HIGHORDER)
+  select(OBJECTID, INSTALLED, UPGRADED, INFRA_HIGHORDER) %>%
+  drop_na(OBJECTID, INSTALLED) %>%
+  mutate(
+    INFRA_HIGHORDER = case_when(
+      str_detect(INFRA_HIGHORDER, 
+                 "Bi-Direction Cycle Track|Cycle Track|Multi-Use Trail") ~ "Protected Lanes",
+      str_detect(INFRA_HIGHORDER, "Bike Lane") ~ "On-Road Lanes",
+      str_detect(INFRA_HIGHORDER, "Sharrows|Signed Route|Park Road") ~ "Shared Roadways",
+      TRUE ~ NA_character_ # Filter out other values
+    )
+  ) %>%
+  drop_na(INFRA_HIGHORDER)  # Remove rows where INFRA_HIGHORDER doesn't match
 
-#### Save data ####
+#### Save cleaned data ####
 write_csv(cleaned_data, "data/analysis_data/bikeway_data.csv")
+
 
 
 ################# Cleaning and Aggregating Bike Share Data ####################
@@ -69,9 +84,9 @@ process_file <- function(file) {
 
 combined_data <- csv_files %>% map_dfr(process_file)
 
-# Aggregate data by month, calculating total rides per month
+# Aggregate data by month, keeping only the year and month
 monthly_aggregated_data <- combined_data %>%
-  group_by(start_date) %>%               
+  group_by(start_date = as.Date(start_date, format = "%Y-%m-01")) %>%               
   summarize(total_rides = n()) %>%       
   arrange(start_date)
 
