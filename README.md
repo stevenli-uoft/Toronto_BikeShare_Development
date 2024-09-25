@@ -10,7 +10,7 @@ The repository is structured as follows:
 - `paper`: Contains the Quarto document, references, and the final PDF of the paper.
 - `scripts`: Contains R scripts used for data downloading, cleaning, simulating, and testing
 
-## Reproducing Graphs and Tables
+## Reproducing the Paper
 To reproduce the graphs and tables from the paper, follow these steps:
 1. Clone the repository to your local machine.
 2. Go to `scripts/` and run `01-download_data.R`.
