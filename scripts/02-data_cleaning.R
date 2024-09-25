@@ -30,12 +30,15 @@ raw_data <- read_csv("data/raw_data/raw_bikeway_data/bikeway_data.csv")
 cleaned_data <- raw_data %>%
   select(OBJECTID, INSTALLED, UPGRADED, INFRA_HIGHORDER) %>%
   drop_na(OBJECTID, INSTALLED) %>%
+  filter(INSTALLED >= 2001 & INSTALLED <= 2023) %>%
   mutate(
     INFRA_HIGHORDER = case_when(
       str_detect(INFRA_HIGHORDER, 
-                 "Bi-Direction Cycle Track|Cycle Track|Multi-Use Trail") ~ "Protected Lanes",
+                 "Bi-Direction Cycle Track|Cycle Track|Multi-Use Trail") ~ 
+        "Protected Lanes",
       str_detect(INFRA_HIGHORDER, "Bike Lane") ~ "On-Road Lanes",
-      str_detect(INFRA_HIGHORDER, "Sharrows|Signed Route|Park Road") ~ "Shared Roadways",
+      str_detect(INFRA_HIGHORDER, "Sharrows|Signed Route|Park Road") ~ 
+        "Shared Roadways",
       TRUE ~ NA_character_ # Filter out other values
     )
   ) %>%
@@ -88,7 +91,8 @@ combined_data <- csv_files %>% map_dfr(process_file)
 monthly_aggregated_data <- combined_data %>%
   group_by(start_date = as.Date(start_date, format = "%Y-%m-01")) %>%               
   summarize(total_rides = n()) %>%       
-  arrange(start_date)
+  arrange(start_date) %>%
+  filter(year(start_date) <= 2023)
 
 write_csv(monthly_aggregated_data, 
           "data/analysis_data/monthly_aggregated_bikeshare_data.csv")

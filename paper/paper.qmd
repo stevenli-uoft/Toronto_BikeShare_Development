@@ -82,10 +82,8 @@ with limitations and suggestions for future research and policy considerations.
 
 bikeShare_data <- read_csv(here::here(
   "data/analysis_data/monthly_aggregated_bikeshare_data.csv"))
-bikeShare_data <- bikeShare_data %>% filter(year(start_date) <= 2023)
 
 bikeWay_data <- read_csv(here::here("data/analysis_data/bikeway_data.csv"))
-bikeWay_data <- bikeWay_data %>% filter(INSTALLED <= 2023)
 
 bikeway_colors <- c("Shared Roadways" = "#e15759", 
                     "On-Road Lanes" = "#76b7b2",
