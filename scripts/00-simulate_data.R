@@ -1,78 +1,91 @@
 #### Preamble ####
-# Purpose: Downloads and saves the data from Open Data Toronto
+# Purpose: Simulates Bike Share Ridership and Bike Way data for Toronto from 2015-2023
 # Author: Steven Li
-# Date: 22 September 2024
+# Date: 25 September 2024
 # Contact: stevency.li@mail.utoronto.ca
 
 
 #### Workspace setup ####
 library(tidyverse)
+library(lubridate)
 
-######################## Simulate bike share data ############################
+#### Data expectations ####
+# Bike Share Ridership Data:
+# - Columns: Trip ID, Date
+# - Trip ID should be unique
+# - Date should be between 2015-01-01 and 2023-12-31
+
+# Bike Way Data:
+# - Columns: Route ID, Constructed Year, Upgraded Year, Bike Way Type
+# - Route ID should be unique
+# - Constructed Year should be between 2015 and 2023
+# - Upgraded Year should be between Constructed Year and 2023, or NA
+# - Bike Way Type should be one of: "Cycle Track", "Bike Lane", "Trail"
+
 set.seed(778)
 
-# Define the start and end date for bike share trips
-start_date <- as.Date("2018-01-01")
-end_date <- as.Date("2023-12-31")
+################### Simulate Bike Share Ridership Data ######################## 
+num_trips <- 10000
 
-# Set the number of trips to simulate
-number_of_trips <- 10000
-
-# Simulate the trip_id and start_date for bike share data
 bike_share_data <- tibble(
-  trip_id = 1:number_of_trips,  # unique trip IDs
-  start_date = as.Date(
-    runif(
-      n = number_of_trips,
-      min = as.numeric(start_date),
-      max = as.numeric(end_date)
-    ),
-    origin = "1970-01-01"
-  )
+  `Trip ID` = seq(1, num_trips),
+  Date = sample(seq(as.Date('2015-01-01'), 
+                    as.Date('2023-12-31'), by="day"), 
+                num_trips, replace=TRUE)
 )
 
-############################ Simulate bike way data ########################
 
-# Define possible bike route types
-bike_route_types <- c("Cycle Track", "Bike Lane", "Shared Lane")
+###################### Simulate Bike Way Data  ################################ 
+num_routes <- 500
 
-# Simulate the number of bike routes
-number_of_routes <- 50
-
-# Simulate RouteID, installation years, upgrade years, and type of bike route
 bike_way_data <- tibble(
-  RouteID = 1:number_of_routes,  # unique route IDs
-  Installed = format(as.Date(
-    runif(
-      n = number_of_routes,
-      min = as.numeric(as.Date("2010-01-01")),
-      max = as.numeric(as.Date("2020-12-31"))
-    ),
-    origin = "1970-01-01"
-  ), "%Y"),  # Extract just the year
-  
-  # Some routes may not be upgraded, so upgrade years are sometimes set to NA
-  Upgraded = ifelse(
-    runif(number_of_routes) < 0.5,  # 50% chance a route gets upgraded
-    format(as.Date(
-      runif(
-        n = number_of_routes,
-        min = as.numeric(as.Date("2021-01-01")),
-        max = as.numeric(as.Date("2023-12-31"))
-      ),
-      origin = "1970-01-01"
-    ), "%Y"),  # Extract just the year
-    NA
-  ),
-  `Type of bike route` = sample(bike_route_types, number_of_routes, replace = TRUE)
+  `Route ID` = seq(1, num_routes),
+  `Constructed Year` = sample(2015:2023, num_routes, replace=TRUE),
+  `Upgraded Year` = NA,
+  `Bike Way Type` = sample(c("Cycle Track", "Bike Lane", "Trail"), 
+                           num_routes, replace=TRUE)
 )
 
+# Add some upgraded routes
+upgraded_routes <- sample(1:num_routes, num_routes / 5) # Upgrade 20% of routes
+bike_way_data$`Upgraded Year`[upgraded_routes] <- 
+  pmax(bike_way_data$`Constructed Year`[upgraded_routes] + 1, 
+       sample(2015:2023, length(upgraded_routes), replace=TRUE))
 
-#### Write simulated data to CSV ####
 
-# Write bike share data to CSV
-write_csv(bike_share_data, file = "data/raw_data/simulated_bike_share_data.csv")
+############################## Visualizations  ##############################
+# Bike Share Ridership over time
+bike_share_data %>%
+  mutate(Year = year(Date)) %>%
+  count(Year) %>%
+  ggplot(aes(x = Year, y = n)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Bike Share Ridership by Year",
+       x = "Year",
+       y = "Number of Trips") +
+  theme_minimal()
 
-# Write bike way data to CSV
-write_csv(bike_way_data, file = "data/raw_data/simulated_bike_way_data.csv")
+# Bike Way Types Distribution
+bike_way_data %>%
+  count(`Bike Way Type`) %>%
+  ggplot(aes(x = `Bike Way Type`, y = n)) +
+  geom_col() +
+  labs(title = "Distribution of Bike Way Types",
+       x = "Bike Way Type",
+       y = "Count") +
+  theme_minimal()
 
+# Bike Ways Constructed and Upgraded by Year
+bike_way_data %>%
+  pivot_longer(cols = c(`Constructed Year`, `Upgraded Year`),
+               names_to = "Event",
+               values_to = "Year") %>%
+  filter(!is.na(Year)) %>%
+  count(Event, Year) %>%
+  ggplot(aes(x = Year, y = n, fill = Event)) +
+  geom_col(position = "dodge") +
+  labs(title = "Bike Ways Constructed and Upgraded by Year",
+       x = "Year",
+       y = "Count") +
+  theme_minimal()
