@@ -6,7 +6,7 @@
 .DS_Store
 
 # Data files
-data/
+data/raw_data/
 
 # History files
 .Rhistory
