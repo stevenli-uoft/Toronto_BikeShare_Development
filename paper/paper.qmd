@@ -5,7 +5,7 @@ author:
 thanks: "Code and data are available at: https://github.com/stevenli-uoft/Toronto_BikeShare_Development"
 date: today
 date-format: long
-abstract: "Toronto's Bike Share program experienced a nearly fivefold increase in annual rides from 2017 to 2023, outpacing the growth of the city's cycling infrastructure. Analysis of open data reveals that while bikeways increased from 539 in 2001 to over 1,400 by 2023, this expansion rate lags behind the surge in ridership. The mismatch between infrastructure development and Bike Share usage highlights an urgent need for accelerated and strategic expansion of Toronto's cycling network. These findings underscore the importance of data-driven urban planning to ensure safe, accessible cycling options for a growing user base."
+abstract: "Analysis of Toronto's open data reveals a mismatch between Bike Share ridership growth and cycling infrastructure development from 2017 to 2023. While annual Bike Share rides increased nearly fivefold, bikeway expansion lagged, growing from 539 in 2001 to just over 1,400 by 2023. This study highlights the urgent need for accelerated and strategic expansion of Toronto's cycling network to accommodate the surge in demand. The findings emphasize the importance of data-driven urban planning in ensuring safe, accessible cycling options for a rapidly growing user base."
 format: pdf
 number-sections: true
 bibliography: references.bib
@@ -28,46 +28,17 @@ set.seed(778)
 \newpage 
 
 # Introduction
-Cities worldwide, grappling with congestion and pollution, are turning to cycling as a sustainable transportation solution. Toronto, Canada's largest city, has been at the forefront of this trend, implementing a bike-sharing program and expanding its cycling infrastructure to encourage more residents to adopt this eco-friendly mode of transport.
+Cities worldwide are turning to cycling as a sustainable solution to congestion and pollution. Toronto, Canada's largest city, has been at the forefront of this trend with its Bike Share program and expanding cycling infrastructure.
 
-Toronto's Bike Share program, launched in 2011, has become an integral part of
-the city's transportation network. Managed by Bike Share Toronto under the 
-Toronto Parking Authority, the program offers thousands of bicycles at hundreds
-of stations throughout the city, providing an accessible and affordable option 
-for short trips [@bikeshareToronto]. The system has grown significantly since 
-its inception, recently expanding to include e-bikes and integrating with the 
-city's public transit system [@ttcIntegration].
+Toronto's Bike Share program, launched in 2011, has become integral to the city's transportation network. Managed by the Toronto Parking Authority, it offers thousands of bicycles at hundreds of stations, providing an affordable option for short trips [@bikeshareToronto]. The system has grown significantly, recently incorporating e-bikes and integrating with public transit [@ttcIntegration].
 
-Concurrent with the growth of the Bike Share program, Toronto has been 
-investing in its cycling infrastructure. The city's Cycling Network Plan 
-outlines key improvements and expansions to bike lanes, trails, and shared 
-routes [@cyclingNetworkPlan]. This includes the introduction of dedicated bike
-lanes in high-traffic areas, the development of multi-use trails, and the 
-continuous expansion of the cycling network to improve connectivity across 
-the city.
+Concurrently, Toronto has invested in cycling infrastructure. The Cycling Network Plan outlines expansions to bike lanes, trails, and shared routes [@cyclingNetworkPlan]. Key initiatives include the 2016 Bloor-Danforth Pilot project [@bloorDanforthPilot] and the ActiveTO program, which led to some temporary bike lanes becoming permanent [@activeTO]. The city has committed to adding 100 kilometers of new cycling infrastructure between 2022 and 2024, with plans for 500 kilometers by 2030 [@cyclingPlan2030].
 
-Several key initiatives have marked Toronto's commitment to cycling 
-infrastructure. The Bloor-Danforth Pilot project in 2016 demonstrated the 
-viability of expanded cycling lanes on major roads [@bloorDanforthPilot]. 
-The ActiveTO program, initiated in response to the COVID-19 pandemic, 
-temporarily closed major streets to car traffic, leading to some bike lanes 
-becoming permanent fixtures [@activeTO]. More recently, the city has committed 
-to adding 100 kilometers of new cycling infrastructure between 2022 and 2024, 
-with plans to complete 500 kilometers by 2030 [@cyclingPlan2030].
+Despite these efforts, there is a lack of comprehensive analysis on whether Toronto's cycling infrastructure growth is keeping pace with the increasing popularity of the Bike Share program. This gap in understanding is crucial as it impacts urban planning decisions and the safety and accessibility of cycling in the city.
 
-As Toronto continues to invest in both its Bike Share program and cycling 
-infrastructure, an important question arises: Is the city's bikeway 
-infrastructure keeping pace with the growth in bike share ridership? This
-paper aims to explore this question by analyzing data on Toronto's Bike Share 
-ridership and the development of its cycling infrastructure from 2017 to 2023.
+This paper addresses this gap by analyzing Toronto's Bike Share ridership data and cycling infrastructure development from 2017 to 2023. Our findings reveal a significant mismatch between the rapid growth in Bike Share usage and the slower expansion of cycling infrastructure, highlighting the need for accelerated development of bike lanes and routes.
 
-The remainder of this paper is structured as follows. @sec-data describes the 
-data sources and methodology used in our analysis. @sec-results presents the 
-results of our data exploration, including trends in Bike Share ridership and
-the evolution of Toronto's cycling infrastructure. @sec-discussion discusses 
-the implications of these findings, addressing the relationship between
-infrastructure development and ridership growth. Finally, @sec-limit concludes
-with limitations and suggestions for future research and policy considerations.
+The remainder of this paper is structured as follows. @sec-data describes the data sources and methodology. @sec-results presents trends in Bike Share ridership and cycling infrastructure evolution. @sec-discussion addresses the implications of our findings. @sec-limit concludes with limitations and future research directions.
 
 # Data {#sec-data}
 ```{r}
@@ -85,15 +56,14 @@ bikeway_colors <- c("Shared Roadways" = "#e15759",
                     "Protected Lanes" = "#2ca02c")
 ```
 
-This study utilizes two primary datasets: Toronto's Bike Share ridership data [@bikeShareData] and the city's Cycling Network (Bikeways) data [@bikeWayData]. Both datasets were obtained from the City of Toronto's Open Data Portal [@torontoOpenData], providing a comprehensive view of cycling infrastructure from 2001 to 2024, and Bike Share ridership in the city from 2017 to 2023. These datasets were selected for their up-to-date and comprehensive nature, offering the most accurate available information on Toronto's cycling infrastructure and Bike Share usage.
+This study utilizes two primary datasets: Toronto's Bike Share ridership data [@bikeShareData] and the city's Cycling Network (Bikeways) data [@bikeWayData]. Both datasets were obtained from the City of Toronto's Open Data Portal [@torontoOpenData], providing a comprehensive view of cycling infrastructure from 2001 to 2024, and Bike Share ridership in the city from 2017 to 2023.
 
 ## Bike Share Ridership Data
-The Bike Share ridership data was collected by Bike Share Toronto, a division of the Toronto Parking Authority. The raw data consisted of anonymized trip data, with each month or quarter provided as a separate CSV file containing all unique trips. A "ride" in this context is defined as a journey that starts at one station and ends at another.
+The Bike Share ridership data, collected by Bike Share Toronto under the Toronto Parking Authority, contains detailed information about each trip taken. While the original dataset included numerous attributes such as Trip Duration, Start and End Station IDs and Locations, Bike ID, and User Type, our analysis focused on two key variables: Trip ID and Trip Start Time. These were sufficient to determine the unique count of rides, which is the primary metric of interest for this study.
 
-We cleaned the data by downloading all CSV files, extracting required columns (trip ID and start date), and performing necessary cleaning operations. This process involved standardizing column names across files, standardizing data types, and aggregating the data into monthly total ridership figures. Additionally, any incomplete or invalid entries were removed ruing the cleaning process to ensure data integrity. This process resulted in a cleaned dataset providing a comprehensive view of Bike Share usage from January 2017 to December 2023.
+We cleaned the data by downloading all CSV files, extracting the required columns (Trip ID and Start Date), and performing necessary cleaning operations. This process involved standardizing column names across files, standardizing data types, and aggregating the data into monthly total ridership figures. Any incomplete or invalid entries were removed during the cleaning process to ensure data integrity.
 
-@tbl-sample-bikeshare presents a sample of the processed dataset, showcasing the year and month of observation along with the total number of rides for that month. This granular monthly data allows for analysis of seasonal trends and year-over-year growth in ridership.
-
+@tbl-sample-bikeshare presents a sample of the processed dataset, showcasing the year and month of observation along with the total number of rides for that month.
 ```{r}
 #| label: tbl-sample-bikeshare
 #| tbl-cap: "Sample of Toronto's Bike Share Monthly Ridership Data (2017-2023)"
@@ -140,10 +110,12 @@ colnames(bikeShare_summary) <- c("Year", "Total Rides", "Avg Monthly Rides",
 kable(bikeShare_summary)
 ```
 
-This summary reveals a consistent increase in total annual rides from 1,190,320 in 2017 to 5,713,141 in 2023, representing nearly a fivefold increase over seven years. The average monthly rides have grown correspondingly, indicating a substantial expansion of the bike shares program's usage.
+This summary reveals a consistent increase in total annual rides from 1,190,320 in 2017 to 5,713,141 in 2023, representing nearly a fivefold increase over seven years.
 
 ## Cycling Network (Bikeways) Data
-The Cycling Network data, sourced from the City of Toronto's Transportation Services division, provides detailed information about the city's bikeways. This includes their construction year, any upgrades, and the type of bikeway. @tbl-sample_bikeway offers a sample of this dataset.
+The Cycling Network data, sourced from the City of Toronto's Transportation Services division, provides detailed information about the city's bikeways. While the original dataset included variables such as street name, starting street, ending street, and surface material, our analysis focused on three key attributes: Route ID, Constructed Year, and Upgraded Year. Notably, information on the total length of each bike route was not available, which presents a limitation in our analysis.
+
+@tbl-sample_bikeway offers a sample of this dataset.
 
 ```{r}
 #| label: tbl-sample_bikeway
@@ -169,19 +141,27 @@ The raw data contained more detailed specifications for bikeway types, which we 
 
 The data cleaning process for the Cycling Network dataset involved:
 
-1. Filtering out Constructed year and Upgraded year entries with invalid years (e.g., year labeled as "1") or missing years.
-2. Standardizing bikeway type classifications into the three main categories (Protected Lanes, On-Road Lanes, Shared Roadways).
-3. Addressing the limitation that bikeways constructed before 2001 were all labeled with a construction year of 2001 in the original dataset. 
+1. Filtering out Constructed Year and Upgraded Year entries with invalid years or missing data.
+2. Standardizing bikeway type classifications into the three main categories.
+3. Addressing the limitation that bikeways constructed before 2001 were all labeled with a construction year of 2001 in the original dataset.
 
 ## Measurement and Limitations
-It's crucial to note that our analysis relies on the count of bikeways rather than their total length. This approach was necessitated by data availability constraints, as information on the length of each bikeway was not provided in the dataset. Using counts instead of lengths may not provide a fully accurate representation of infrastructure growth, as it doesn't account for variations in bikeway size or capacity. For instance, a short protected lane would be given the same weight in our analysis as a long multi-use trail.
+It's crucial to note that our analysis relies on the count of bikeways rather than their total length. This approach was necessitated by data availability constraints, as information on the length of each bikeway was not provided in the dataset. Using counts instead of lengths may not provide a fully accurate representation of infrastructure growth, as it doesn't account for variations in bikeway size or capacity. For instance, a short protected lane would be given the same weight in our analysis as a long multi-use trail. This limitation should be considered when interpreting the results, particularly when comparing infrastructure growth to ridership increases.
 
-This limitation should be kept in mind when interpreting the results, particularly when comparing infrastructure growth to ridership increases. Future studies with access to length data could offer a more precise comparison between infrastructure development and ridership growth.
+## Potential Biases and Ethical Considerations
+While the data provides valuable insights, it's important to acknowledge potential biases:
+
+- **Spatial Bias:** The uneven distribution of bikeways and bike share stations could skew our understanding of ridership patterns. Areas with more extensive infrastructure or higher station density (often in central or wealthier neighborhoods) may show higher ridership, potentially underrepresenting usage in less-serviced areas.
+- **Measurement Bias:** The use of bikeway counts rather than lengths may introduce bias in assessing infrastructure growth, potentially over- or under-representing the actual expansion of the cycling network.
+
+Ethically, it's worth noting that the trip data in the ridership dataset is anonymized, mitigating privacy concerns.
 
 ## Data Processing and Analysis
 Both datasets were cleaned and processed using R [@RCoreTeam2023], with additional support from the tidyverse [@tidyverse], dplyr [@dplyr], and lubridate [@lubridate] packages. The cleaning process involved removing any incomplete entries, standardizing date formats for consistency across the datasets, and aggregating data where necessary.
 
-When analyzed together, these datasets provide insights into the relationship between infrastructure development and the growing demand for cycling in Toronto, allowing us to assess whether the city's bikeway expansion is keeping pace with increasing ridership. While other datasets were considered, such as bike lanes measured in kilometers or total bike counts, they were not used due to being outdated or no longer maintained.
+These datasets were chosen for their up-to-date and comprehensive nature, offering the most accurate available information on Toronto's cycling infrastructure and Bike Share usage. While other datasets were considered, such as bike lanes measured in kilometers or total bike counts, they were not used due to being outdated or no longer maintained.
+
+When analyzed together, these datasets provide insights into the relationship between infrastructure development and the growing demand for cycling in Toronto, allowing us to assess whether the city's bikeway expansion is keeping pace with increasing ridership.
 
 # Results {#sec-results}
 Our analysis of Toronto's Bike Share ridership and cycling infrastructure data from 2017 to 2023 reveals several key trends and patterns, shedding light on the relationship between infrastructure development and cycling adoption in the city.
